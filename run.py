@@ -10,8 +10,10 @@
 
 from __future__ import print_function
 from time import time
-import parse
+#import parse
+import preprocess_docs
 import lemmatization
+import preprocess
 
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.decomposition import NMF, LatentDirichletAllocation
@@ -21,8 +23,8 @@ n_samples = 20 #0 for all
 n_features = 1000
 n_components = 10
 n_top_words = 20
-
-parsedHtmls = parse.ParseHtmlFiles(max_num_files=n_samples)
+parsed_htmls = load_parsed_htmls(dir_path)
+stringData = preprocess_docs.preprocess_docs(parsed_htmls)
 
 lemmaToken = lemmatization.LemmaTokenizer()
 
@@ -31,5 +33,5 @@ tfidf_vectorizer = TfidfVectorizer(max_df=0.95, min_df=2,
                                                                               stop_words='english', tokenizer = lemmaToken)
 
 t0 = time()
-tfidf = tfidf_vectorizer.fit_transform(parsedHtmls)
+tfidf = tfidf_vectorizer.fit_transform(stringData)
 print("done in %0.3fs." % (time() - t0))

@@ -26,20 +26,6 @@ from bs4 import BeautifulSoup
 import os
 import sys
 
-#
-#dir_source_htmls = sys.argv[1]
-#dir_target_htmls = sys.argv[2]
-
-if len(sys.argv) < 2:
-    path = '/home/evgeniy/Documents/Datathon2018/HTMLS/' 
-    paths_parsed = '/home/evgeniy/Documents/Datathon2018/HTML_parsed01'
-else:
-    path = dir_source_htmls    
-    paths_parsed = dir_target_htmls
-
-file_names = os.listdir(path)
-file_names = [os.path.join(path, file_name) for file_name in file_names]
-
 def extract_content(file_path, language='English'):
     # file_path = os.path.join(path, file_name)
     file_object  = open(file_path)
@@ -112,19 +98,32 @@ def extract_content(file_path, language='English'):
 
 
 
-for file_path in file_names:
-    holder = extract_content(file_path, 'English')
-    if holder is None:
-        continue
-    doc_id = holder['Document']
+
+
+
+def parse(path = '/home/evgeniy/Documents/Datathon2018/HTMLS/', paths_parsed = '/home/evgeniy/Documents/Datathon2018/HTML_parsed01'):
+    file_names = os.listdir(path)
+    file_names = [os.path.join(path, file_name) for file_name in file_names]
     
-    json_name = os.path.join(paths_parsed, 
-                             doc_id + '.json')
+    for file_path in file_names:
+        holder = extract_content(file_path, 'English')
+        if holder is None:
+            continue
+        doc_id = holder['Document']
+        
+        json_name = os.path.join(paths_parsed, 
+                                 doc_id + '.json')
+        
+        with open(json_name, 'w') as fp:
+            json.dump(holder, fp, indent=4)
     
-    with open(json_name, 'w') as fp:
-        json.dump(holder, fp, indent=4)
-    
-    
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        parse()
+    else:
+        path = sys.argv[1]    
+        paths_parsed = sys.argv[2]
+        parse(path,paths_parsed)
 #for holder in holders_english:
 #    holder
 
