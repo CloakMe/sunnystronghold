@@ -1,6 +1,12 @@
+import pandas as pd
 
 def preprocess_docs(holders):
-    return list(map(preprocess_doc, holders))
+    df = pd.DataFrame(columns=["text"])
+    for holder in holders:
+        doc_id = holder["Document"]
+        text = preprocess_doc(holder)
+        df.loc[doc_id] = {'text': text}
+    return df
 
 def preprocess_doc(holder):
     return preprocess_doc_assign_weights(holder)
@@ -12,10 +18,9 @@ def preprocess_doc_assign_weights(holder):
     text = append_content(text, holder.get("Title"), 3)
     text = append_content(text, holder.get("Keywords"), 3)
     text = append_content(text, holder.get("Categories"), 3)
-    
+
     text = append_content(text, holder.get("Product"), 1)
     text = append_content(text, holder.get("Symptoms"), 1)
-    text = append_content(text, holder.get("Purpose"), 1)
     text = append_content(text, holder.get("Purpose"), 1)
     text = append_content(text, holder.get("Details"), 1)
 

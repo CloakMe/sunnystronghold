@@ -23,7 +23,7 @@ from sklearn.datasets import fetch_20newsgroups
 import numpy as np
 
 dir_path = 'HTML_parsed01/'
-n_samples = 20 #0 for all
+n_samples = 20 #None for all
 n_features = 1000
 n_components = 10
 n_top_words = 20
@@ -33,12 +33,12 @@ if __name__ == "__main__":
     else:
         dir_path = sys.argv[1]
     
-parsed_htmls = load_parsed_htmls.load_parsed_htmls(dir_path)
+parsed_htmls = load_parsed_htmls.load_parsed_htmls(dir_path, n_samples)
 stringData = preprocess_docs.preprocess_docs(parsed_htmls)
 
 lemmaToken = lemmatization.LemmaTokenizer()
 tfidf_vectorizer = TfidfVectorizer(max_df=0.95, min_df=2,max_features=n_features, stop_words='english', tokenizer = lemmaToken)
-tfidf = tfidf_vectorizer.fit_transform(stringData)
+tfidf = tfidf_vectorizer.fit_transform(stringData["text"])
 def print_top_words(model, feature_names, n_top_words):
     outstr = []
     for topic_idx, topic in enumerate(model.components_):
@@ -56,7 +56,7 @@ def print_top_words(model, feature_names, n_top_words):
 print("Fitting LDA models with tf features, "
       "n_samples=%d and n_features=%d..."
       % (n_samples, n_features))
-lda = LatentDirichletAllocation(n_components=n_components, max_iter=5,
+lda = LatentDirichletAllocation(n_topics=n_components, max_iter=5,
                                 learning_method='online',
                                 learning_offset=50.,
                                 random_state=0)
