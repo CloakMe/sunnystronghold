@@ -20,6 +20,7 @@ import lemmatization
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.decomposition import NMF, LatentDirichletAllocation
 from sklearn.datasets import fetch_20newsgroups
+import numpy as np
 
 dir_path = 'HTML_parsed01/'
 n_samples = 20 #0 for all
@@ -36,11 +37,34 @@ parsed_htmls = load_parsed_htmls.load_parsed_htmls(dir_path)
 stringData = preprocess_docs.preprocess_docs(parsed_htmls)
 
 lemmaToken = lemmatization.LemmaTokenizer()
-
-tfidf_vectorizer = TfidfVectorizer(max_df=0.95, min_df=2,
-                                           max_features=n_features,
-                                                                              stop_words='english', tokenizer = lemmaToken)
-
-t0 = time()
+tfidf_vectorizer = TfidfVectorizer(max_df=0.95, min_df=2,max_features=n_features, stop_words='english', tokenizer = lemmaToken)
 tfidf = tfidf_vectorizer.fit_transform(stringData)
+def print_top_words(model, feature_names, n_top_words):
+    outstr = []
+    for topic_idx, topic in enumerate(model.components_):
+        ascendingIndeces = topic.argsort()[:-n_top_words - 1:-1]
+        message = "Topic #%d: " % topic_idx
+        sublist = []
+        for idx in ascendingIndeces:
+            message += (feature_names[idx] + '\n')
+            sublist += [feature_names[idx]]
+        outstr += [sublist]
+        print(message)
+    print()
+    return outstr
+
+print("Fitting LDA models with tf features, "
+      "n_samples=%d and n_features=%d..."
+      % (n_samples, n_features))
+lda = LatentDirichletAllocation(n_components=n_components, max_iter=5,
+                                learning_method='online',
+                                learning_offset=50.,
+                                random_state=0)
+t0 = time()
+lda.fit(tfidf)
+print("done in %0.3fs." % (time() - t0))
+
+print("\nTopics in LDA model:")
+tf_feature_names = tfidf_vectorizer.get_feature_names()
+topwords = print_top_words(lda, tf_feature_names, n_top_words)
 print("done in %0.3fs." % (time() - t0))
