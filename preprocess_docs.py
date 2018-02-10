@@ -11,7 +11,11 @@ def preprocess_doc_assign_weights(holder):
     
     text = append_content(text, holder.get("Title"), 3)
     text = append_content(text, holder.get("Keywords"), 3)
+    text = append_content(text, holder.get("Categories"), 3)
+    
     text = append_content(text, holder.get("Product"), 1)
+    text = append_content(text, holder.get("Symptoms"), 1)
+    text = append_content(text, holder.get("Purpose"), 1)
     text = append_content(text, holder.get("Purpose"), 1)
     text = append_content(text, holder.get("Details"), 1)
 
