@@ -18,13 +18,12 @@ the example runnable in a couple of tens of seconds. You can try to
 increase the dimensions of the problem, but be aware that the time
 complexity is polynomial in NMF. In LDA, the time complexity is
 proportional to (n_samples * iterations).
-
-"""
-
+credit to:
 # Author: Olivier Grisel <olivier.grisel@ensta.org>
 #         Lars Buitinck
 #         Chyi-Kwei Yau <chyikwei.yau@gmail.com>
 # License: BSD 3 clause
+"""
 
 from __future__ import print_function
 from time import time
@@ -60,14 +59,18 @@ t0 = time()
 #dataset = fetch_20newsgroups(shuffle=True, random_state=1,
 #                             remove=('headers', 'footers', 'quotes'))
 #data_samples = dataset.data[:n_samples]
-data_samples = prs.ParseHtmlFiles()
+file_path = 'E:\CurAct\data\Notebooks\DATA\KB\HTMLS'
+
+data_samples = prs.ParseHtmlFiles(file_path, 34000)
+
 print("done in %0.3fs." % (time() - t0))
 
 # Use tf-idf features for NMF.
 print("Extracting tf-idf features for NMF...")
-tfidf_vectorizer = TfidfVectorizer(max_df=0.95, min_df=2,
-                                   max_features=n_features,
-                                   stop_words='english')
+tfidf_vectorizer = TfidfVectorizer(analyzer == 'word', 
+                                   max_df=0.95, min_df=2,
+                                   max_features=n_features,                                   
+                                   stop_words=['VMWare','product'])
 t0 = time()
 tfidf = tfidf_vectorizer.fit_transform(data_samples)
 print("done in %0.3fs." % (time() - t0))
@@ -117,9 +120,12 @@ lda = LatentDirichletAllocation(n_components=n_components, max_iter=5,
                                 learning_offset=50.,
                                 random_state=0)
 t0 = time()
-lda.fit(tf)
+lda.fit(tfidf)
 print("done in %0.3fs." % (time() - t0))
 
 print("\nTopics in LDA model:")
 tf_feature_names = tf_vectorizer.get_feature_names()
 print_top_words(lda, tf_feature_names, n_top_words)
+
+print("\n--------------------")
+
