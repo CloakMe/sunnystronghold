@@ -1,6 +1,7 @@
 from nltk import word_tokenize, pos_tag
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet
+import re
 # from sklearn.feature_extraction.text import CountVectorizer
 
 class LemmaTokenizer(object):
@@ -24,6 +25,11 @@ class LemmaTokenizer(object):
                     pass
                 else:
                     valid = False;
+            if bool(re.match("^[-.'`]+$", word)):
+                valid = False
+            # version numbers: 2.3.x
+            if bool(re.match("^(\d+\.)+((\d+)|x)$", word)):
+                valid = False
             if valid:
                 res.append(word)
         return res
