@@ -6,13 +6,26 @@ from nltk.corpus import wordnet
 class LemmaTokenizer(object):
     def __init__(self):
         self.wnl = WordNetLemmatizer()
+        self.allowedSpecials = ['-','.','\'','`']
     def __call__(self, doc):
         words = word_tokenize(doc)
+      
         tokens = pos_tag(words)
         res = []
         for (word, pt) in tokens:
             wn_pt = self.get_wordnet_pos(pt)
-            res.append(self.wnl.lemmatize(word, wn_pt))
+            word = word.lower()
+            word = self.wnl.lemmatize(word, wn_pt)
+            valid = True;
+            if len(word) < 2:
+                valid = False;
+            for letter in word:
+                if letter.isalnum() or (letter in self.allowedSpecials):
+                    pass
+                else:
+                    valid = False;
+            if valid:
+                res.append(word)
         return res
     
     def get_wordnet_pos(self,treebank_tag):
