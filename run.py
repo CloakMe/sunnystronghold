@@ -25,32 +25,13 @@ import numpy as np
 
 import pyLDAvis
 import pyLDAvis.sklearn
+import cPickle as pickle
 
 dir_path = 'HTML_parsed01/'
-n_samples = 20 #None for all
-n_features = 1000
+n_samples = 4000 #None for all
+n_features = 500
 n_components = 10
 n_top_words = 20
-
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print('No command-line arguments, assume',dir_path,'for dir path of parsed htmls into jsons.')
-    else:
-        dir_path = sys.argv[1]
-    
-parsed_htmls = load_parsed_htmls.load_parsed_htmls(dir_path, n_samples)
-stringData = preprocess_docs.preprocess_docs(parsed_htmls)
-
-lemmaToken = lemmatization.LemmaTokenizer()
-
-tfidf_vectorizer = TfidfVectorizer(max_df=0.95, 
-                                   min_df=2,
-                                   max_features=n_features, 
-                                   stop_words='english', 
-                                   tokenizer = lemmaToken)
-
-
-tfidf = tfidf_vectorizer.fit_transform(stringData["text"])
 
 def print_top_words(model, feature_names, n_top_words):
     outstr = []
@@ -66,23 +47,46 @@ def print_top_words(model, feature_names, n_top_words):
     print()
     return outstr
 
-print("Fitting LDA models with tf features, "
-      "n_samples=%d and n_features=%d..."
-      % (n_samples, n_features))
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print('No command-line arguments, assume',dir_path,'for dir path of parsed htmls into jsons.')
+    else:
+        dir_path = sys.argv[1]
+    
+    #parsed_htmls = load_parsed_htmls.load_parsed_htmls(dir_path, n_samples)
+    #stringData = preprocess_docs.preprocess_docs(parsed_htmls)
+    #pickle.dump( stringData, open('stringData.pickle','wb') )
+    stringData = pickle.load( open('stringData.pickle','rb') )
+    lemmaToken = lemmatization.LemmaTokenizer()
 
-lda = LatentDirichletAllocation(n_topics=n_components, max_iter=5,
-                                learning_method='online',
-                                learning_offset=50.,
-                                random_state=0)
-t0 = time()
-lda.fit(tfidf)
-print("done in %0.3fs." % (time() - t0))
+    tfidf_vectorizer = TfidfVectorizer(max_df=0.95, 
+                                       min_df=2,
+                                       max_features=n_features, 
+                                       stop_words='english', 
+                                       tokenizer = lemmaToken)
 
-print("\nTopics in LDA model:")
-tf_feature_names = tfidf_vectorizer.get_feature_names()
-topwords = print_top_words(lda, tf_feature_names, n_top_words)
-print("done in %0.3fs." % (time() - t0))
 
-vis_data = pyLDAvis.sklearn.prepare(lda, tfidf, tfidf_vectorizer)
+    tfidf = tfidf_vectorizer.fit_transform(stringData["text"])
 
-pyLDAvis.display(vis_data)
+
+
+    print("Fitting LDA models with tf features, "
+          "n_samples=%d and n_features=%d..."
+          % (n_samples, n_features))
+
+    lda = LatentDirichletAllocation(n_topics=n_components, max_iter=5,
+                                    learning_method='online',
+                                    learning_offset=50.,
+                                    random_state=0)
+    t0 = time()
+    lda.fit(tfidf)
+    print("done in %0.3fs." % (time() - t0))
+
+    print("\nTopics in LDA model:")
+    tf_feature_names = tfidf_vectorizer.get_feature_names()
+    topwords = print_top_words(lda, tf_feature_names, n_top_words)
+    print("done in %0.3fs." % (time() - t0))
+
+    vis_data = pyLDAvis.sklearn.prepare(lda, tfidf, tfidf_vectorizer)
+
+    pyLDAvis.show(vis_data)
