@@ -59,14 +59,18 @@ t0 = time()
 #dataset = fetch_20newsgroups(shuffle=True, random_state=1,
 #                             remove=('headers', 'footers', 'quotes'))
 #data_samples = dataset.data[:n_samples]
-data_samples = prs.ParseHtmlFiles()
+file_path = 'E:\CurAct\data\Notebooks\DATA\KB\HTMLS'
+
+data_samples = prs.ParseHtmlFiles(file_path, 34000)
+
 print("done in %0.3fs." % (time() - t0))
 
 # Use tf-idf features for NMF.
 print("Extracting tf-idf features for NMF...")
-tfidf_vectorizer = TfidfVectorizer(max_df=0.95, min_df=2,
-                                   max_features=n_features,
-                                   stop_words='english')
+tfidf_vectorizer = TfidfVectorizer(analyzer == 'word', 
+                                   max_df=0.95, min_df=2,
+                                   max_features=n_features,                                   
+                                   stop_words=['VMWare','product'])
 t0 = time()
 tfidf = tfidf_vectorizer.fit_transform(data_samples)
 print("done in %0.3fs." % (time() - t0))
