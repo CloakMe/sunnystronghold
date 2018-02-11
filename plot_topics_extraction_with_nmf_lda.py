@@ -18,13 +18,12 @@ the example runnable in a couple of tens of seconds. You can try to
 increase the dimensions of the problem, but be aware that the time
 complexity is polynomial in NMF. In LDA, the time complexity is
 proportional to (n_samples * iterations).
-
-"""
-
+credit to:
 # Author: Olivier Grisel <olivier.grisel@ensta.org>
 #         Lars Buitinck
 #         Chyi-Kwei Yau <chyikwei.yau@gmail.com>
 # License: BSD 3 clause
+"""
 
 from __future__ import print_function
 from time import time
@@ -117,9 +116,12 @@ lda = LatentDirichletAllocation(n_components=n_components, max_iter=5,
                                 learning_offset=50.,
                                 random_state=0)
 t0 = time()
-lda.fit(tf)
+lda.fit(tfidf)
 print("done in %0.3fs." % (time() - t0))
 
 print("\nTopics in LDA model:")
 tf_feature_names = tf_vectorizer.get_feature_names()
 print_top_words(lda, tf_feature_names, n_top_words)
+
+print("\n--------------------")
+
