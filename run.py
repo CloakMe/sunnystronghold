@@ -32,9 +32,9 @@ import nltk
 nltk.data.path.append('/home/admin/nltk_data')
 
 dir_path = 'HTML_parsed01/'
-n_samples = 4000 #None for all
-n_features = 500
-n_components = 10
+n_samples = 620 #None for all
+n_features = 100
+n_components = 4
 n_top_words = 20
 
 def print_top_words(model, feature_names, n_top_words):
@@ -78,8 +78,8 @@ if __name__ == "__main__":
     #parsed_htmls = load_parsed_htmls.load_parsed_htmls(dir_path, n_samples)
     #stringData = preprocess_docs.preprocess_docs(parsed_htmls)
     #pickle.dump( stringData, open('stringData.pickle','wb') )
-    #stringData = csv_to_string_data('Issues_Vector21-periodicreview-oct25o.csv')
-    stringData = pickle.load( open('stringData.pickle','rb') )
+    #stringData = pickle.load( open('stringData.pickle','rb') )
+    stringData = csv_to_string_data('Issues_Vector21-periodicreview-oct25o.csv')
     lemmaToken = lemmatization.LemmaTokenizer()
 
     tfidf_vectorizer = TfidfVectorizer(max_df=0.95, 

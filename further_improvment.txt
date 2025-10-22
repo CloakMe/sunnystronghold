@@ -1,0 +1,48 @@
+
+1. Is it possible though to modify it so that it uses some predefined words for clustering? 
+
+    Using predefined words for clustering with LDA is not directly how LDA works since it is an unsupervised model that discovers topics based on word distributions. However, you can influence clustering by customizing the vocabulary and input features—by limiting the vocabulary to a set of predefined words (e.g. via the vectorizer’s vocabulary parameter) before fitting LDA. This constrains the model to cluster on those specific words.
+
+2. Also is it possible to use phrases, i.e. combination of two or three words, which are also predefined as the idea from the previous question?
+    Using phrases (bigrams, trigrams) as predefined features is possible by incorporating phrase detection before vectorization—for example, using libraries like nltk or gensim to build phrases, then adding these phrases as tokens in the documents, or by configuring the vectorizer to extract n-grams (e.g., ngram_range=(2,3)). You can predefine which phrases to include by customizing the vocabulary accordingly.
+
+ 3. Is it also possible to use phrases for the clustering algorithm itself, i.e. use not top 20 words but top 20 words and phrases, without pre-define of clusters as stated in first and second questions? 
+    To use phrases for the clustering algorithm without predefined clusters, you simply configure vectorization to include unigrams and n-grams (phrases), typically by setting ngram_range=(1,3) or similar in your vectorizer. Then LDA treats these phrases as tokens just like words and can show top words and phrases as topics.
+    
+4. Is it possible to mix the idea from first and second question with idea from 3rd question?
+    Mixing predefined clusters and phrases is also possible by combining these ideas: restrict the vocabulary to predefined words and phrases, and allow LDA to cluster based on this enriched vocabulary. This requires careful preprocessing to ensure both single words and phrases are included as features.
+    
+​---------------------------which is the easiest and straight forward approach which would cause minimal change in the initial script? --------
+
+    For your use case where you want to influence the clustering of bug descriptions into meaningful risk-related categories using predefined words or phrases, using LDA alone—being purely unsupervised—is limited. Instead, consider supervised or semi-supervised classification or clustering approaches that let you guide or constrain the learning:
+
+    Supervised Classification Models: Since you have predefined categories like "UI bugs" and "build errors" with associated keywords, you can create labeled training data (e.g., manually label a subset of bug entries) and train a supervised classifier such as Logistic Regression, Support Vector Machines (SVM), Random Forests, or even deep learning models like LSTM or transformer-based classifiers on the bug descriptions. This approach directly learns the link from text features to risk classes and leverages your known keywords during feature engineering (e.g., TF-IDF restricted to your keywords or phrase features).
+
+    Semi-Supervised Learning or Seeded Clustering: Methods like Seeded K-means or Constrained Clustering allow you to provide initial "seed" keywords or partial labels to steer clusters toward desired categories. This influences clustering based on your provided knowledge without requiring full supervision.
+
+    Keyword / Rule-Based Filtering before Clustering: You could first filter out entries matching certain keyword sets (like UI terms or compiler errors), labeling them as low risk upfront, then cluster the remaining data with unsupervised methods like LDA or non-negative matrix factorization (NMF) to find other hidden risk clusters.
+
+    Topic Modeling Enhanced by Guided Approaches: Variants of topic modeling allow incorporating priors or constraints to favor topics aligned with specific keywords or phrases (e.g., GuidedLDA, SeededLDA), effectively combining your predefined clusters with unsupervised discovery.
+
+    Text Embeddings and Clustering: Use pretrained embeddings (e.g., Word2Vec, BERT) to represent bug descriptions as vectors, then apply clustering algorithms like K-means or DBSCAN on these dense features. You can then combine this with your keyword lists by, for instance, weighting embeddings or filtering clusters afterward.
+
+In summary, supervised classifiers trained on labeled bugs with features engineered around your predefined keywords/phrases, or semi-supervised/semi-guided clustering methods, are the most straightforward ways to influence clustering for risk estimation in your bug descriptions. Purely unsupervised LDA is less suited when you want direct control over topics associated with known risk categories.
+
+​---------------------------would it be hard to incorporate "Supervised Classification Models" into the above script? -----------
+
+Incorporating supervised classification models into your existing script is quite feasible and not very hard, but it does require some additional steps compared to your current unsupervised LDA setup.
+
+Key considerations:
+
+    You will need labeled data, i.e., bug descriptions already tagged with risk-related categories (such as "UI bug," "build error," etc.). If you don't have labels, you'll need to create some or rely on weak labeling via your predefined keywords.
+
+    After preprocessing your text (tokenization, lemmatization), you reuse vectorization (like your TF-IDF) as input features for a supervised classifier rather than LDA.
+
+    You can train simple supervised classifiers like Logistic Regression, Support Vector Machines (SVM), Decision Trees, or Random Forests using libraries like scikit-learn with minimal coding change—mainly to add model training, evaluation, and prediction steps.
+
+    The script's backbone (loading data, preprocessing, vectorizing) can mostly stay the same; you replace the LDA fitting and topic extraction with classifier training and prediction.
+
+    You will also add evaluation metrics (accuracy, precision, recall) to understand the model performance.
+
+Thus, while it is not a trivial one-line edit, it is a moderate modification and quite straightforward for anyone familiar with Python machine learning workflows. It is very much practical to adapt your current script incrementally into a supervised pipeline that uses your predefined categories and risk signals to classify bug risks.
+
