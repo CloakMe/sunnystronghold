@@ -24,8 +24,12 @@ import numpy as np
 
 
 import pyLDAvis
-import pyLDAvis.sklearn
-import cPickle as pickle
+import pyLDAvis.lda_model
+#import cPickle as pickle
+import csv
+
+import nltk
+nltk.data.path.append('/home/admin/nltk_data')
 
 dir_path = 'HTML_parsed01/'
 n_samples = 4000 #None for all
@@ -47,6 +51,24 @@ def print_top_words(model, feature_names, n_top_words):
     print()
     return outstr
 
+def csv_to_string_data(csv_filepath):
+    string_data = {"text": []}
+
+    with open(csv_filepath, newline='', encoding='utf-8') as csvfile:
+        reader = csv.reader(csvfile)
+        for row in reader:
+            # Skip empty rows or header if any (adapt if needed)
+            if not row:
+                continue
+            
+            # Example: Combine multiple columns as one document string
+            # You can adjust which columns to combine for "document"
+            # Here using columns 1 (title) and 3 (description) as text
+            doc_text = row[1] + " " + row[3]
+            string_data["text"].append(doc_text.strip())
+    
+    return string_data
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print('No command-line arguments, assume',dir_path,'for dir path of parsed htmls into jsons.')
@@ -56,6 +78,7 @@ if __name__ == "__main__":
     #parsed_htmls = load_parsed_htmls.load_parsed_htmls(dir_path, n_samples)
     #stringData = preprocess_docs.preprocess_docs(parsed_htmls)
     #pickle.dump( stringData, open('stringData.pickle','wb') )
+    #stringData = csv_to_string_data('Issues_Vector21-periodicreview-oct25o.csv')
     stringData = pickle.load( open('stringData.pickle','rb') )
     lemmaToken = lemmatization.LemmaTokenizer()
 
@@ -74,7 +97,7 @@ if __name__ == "__main__":
           "n_samples=%d and n_features=%d..."
           % (n_samples, n_features))
 
-    lda = LatentDirichletAllocation(n_topics=n_components, max_iter=5,
+    lda = LatentDirichletAllocation(n_components=n_components, max_iter=5,
                                     learning_method='online',
                                     learning_offset=50.,
                                     random_state=0)
@@ -83,10 +106,11 @@ if __name__ == "__main__":
     print("done in %0.3fs." % (time() - t0))
 
     print("\nTopics in LDA model:")
-    tf_feature_names = tfidf_vectorizer.get_feature_names()
+    tf_feature_names = tfidf_vectorizer.get_feature_names_out()
     topwords = print_top_words(lda, tf_feature_names, n_top_words)
     print("done in %0.3fs." % (time() - t0))
 
-    vis_data = pyLDAvis.sklearn.prepare(lda, tfidf, tfidf_vectorizer)
-
-    pyLDAvis.show(vis_data)
+    vis_data = pyLDAvis.lda_model.prepare(lda, tfidf, tfidf_vectorizer)
+    
+    pyLDAvis.save_html(vis_data, 'lda_vis.html')
+    #pyLDAvis.show(vis_data)
