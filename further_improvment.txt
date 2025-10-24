@@ -46,3 +46,30 @@ Key considerations:
 
 Thus, while it is not a trivial one-line edit, it is a moderate modification and quite straightforward for anyone familiar with Python machine learning workflows. It is very much practical to adapt your current script incrementally into a supervised pipeline that uses your predefined categories and risk signals to classify bug risks.
 
+--------------
+--------------Output (clf):
+
+    clf is now a Logistic Regression model object. It hasn't been trained yet; it's just set up with the specified options.
+
+    You will use methods like .fit() and .predict() on this model next.
+
+How does it use the output of train_test_split?
+
+    train_test_split gives you X_train, X_test, y_train, y_test. These are your training features and labels, and your test features and labels.
+
+    Next step (typically): you train your classifier with the training data. For example:
+
+python
+clf.fit(X_train, y_train)
+
+This uses X_train (features) and y_train (labels) to learn the classification model.
+
+Then, you use:
+
+    python
+    predictions = clf.predict(X_test)
+
+    to predict labels for new/unseen test data (X_test), and you compare predictions to y_test to measure model accuracy.
+
+Quick review: train_test_split prepares your data for supervised learning, and the LogisticRegression object uses that split data to learn and to predict. Can you explain in your own words why we split data into train and test sets instead of using all the data to train the classifier?
+
