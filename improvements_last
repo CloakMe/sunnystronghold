@@ -1,0 +1,229 @@
+#!/usr/bin/env python
+#Datathon critical outliers - clusterize VMWare KB articles
+
+#Credit to 
+# Author: Olivier Grisel <olivier.grisel@ensta.org>
+#         Lars Buitinck
+#         Chyi-Kwei Yau <chyikwei.yau@gmail.com>
+#for some source code from
+#http://scikit-learn.org/0.18/auto_examples/applications/topics_extraction_with_nmf_lda.html
+
+from __future__ import print_function
+import os
+import sys
+from time import time
+#import parse
+import load_parsed_htmls
+import preprocess_docs
+import lemmatization
+
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from sklearn.decomposition import NMF, LatentDirichletAllocation
+from sklearn.datasets import fetch_20newsgroups
+import numpy as np
+
+
+import pyLDAvis
+import pyLDAvis.lda_model
+#import cPickle as pickle
+import csv
+
+import nltk
+nltk.data.path.append('/home/admin/nltk_data')
+
+dir_path = 'HTML_parsed01/'
+n_samples = 620 #None for all
+n_features = 100
+n_components = 4
+n_top_words = 20
+
+def print_top_words(model, feature_names, n_top_words):
+    outstr = []
+    for topic_idx, topic in enumerate(model.components_):
+        ascendingIndeces = topic.argsort()[:-n_top_words - 1:-1]
+        message = "Topic #%d: " % topic_idx
+        sublist = []
+        for idx in ascendingIndeces:
+            message += (feature_names[idx] + '\n')
+            sublist += [feature_names[idx]]
+        outstr += [sublist]
+        print(message)
+    print()
+    return outstr
+
+def csv_to_string_data(csv_filepath):
+    string_data = {"text": []}
+
+    with open(csv_filepath, newline='', encoding='utf-8') as csvfile:
+        reader = csv.reader(csvfile)
+        for row in reader:
+            # Skip empty rows or header if any (adapt if needed)
+            if not row:
+                continue
+            
+            # Example: Combine multiple columns as one document string
+            # You can adjust which columns to combine for "document"
+            # Here using columns 1 (title) and 3 (description) as text
+            doc_text = row[1] + " " + row[3]
+            string_data["text"].append(doc_text.strip())
+    
+    return string_data
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print('No command-line arguments, assume',dir_path,'for dir path of parsed htmls into jsons.')
+    else:
+        dir_path = sys.argv[1]
+    
+    #parsed_htmls = load_parsed_htmls.load_parsed_htmls(dir_path, n_samples)
+    #stringData = preprocess_docs.preprocess_docs(parsed_htmls)
+    #pickle.dump( stringData, open('stringData.pickle','wb') )
+    #stringData = pickle.load( open('stringData.pickle','rb') )
+    stringData = csv_to_string_data('Issues_Vector21-periodicreview-oct25o.csv')
+    lemmaToken = lemmatization.LemmaTokenizer()
+
+    tfidf_vectorizer = TfidfVectorizer(max_df=0.95, 
+                                       min_df=2,
+                                       max_features=n_features, 
+                                       stop_words='english', 
+                                       tokenizer = lemmaToken)
+
+
+    tfidf = tfidf_vectorizer.fit_transform(stringData["text"])
+
+
+
+    print("Fitting LDA models with tf features, "
+          "n_samples=%d and n_features=%d..."
+          % (n_samples, n_features))
+
+    lda = LatentDirichletAllocation(n_components=n_components, max_iter=5,
+                                    learning_method='online',
+                                    learning_offset=50.,
+                                    random_state=0)
+    t0 = time()
+    lda.fit(tfidf)
+    print("done in %0.3fs." % (time() - t0))
+
+    print("\nTopics in LDA model:")
+    tf_feature_names = tfidf_vectorizer.get_feature_names_out()
+    topwords = print_top_words(lda, tf_feature_names, n_top_words)
+    print("done in %0.3fs." % (time() - t0))
+
+    vis_data = pyLDAvis.lda_model.prepare(lda, tfidf, tfidf_vectorizer)
+    
+    pyLDAvis.save_html(vis_data, 'lda_vis.html')
+    #pyLDAvis.show(vis_data)
+
+This is a script which loads the csv. The csv file contains issues/bugs that are related to a (usually C/C++) development toolchain. One needs to estimate the risk each issue might create/impose, when using that toolchain. The idea is to use the script to first cluster the issues into distinct categories. Each category represents a certain topic - usually it target the usage of something e.g. certain compiler optimization level or some standard C++ function, in which case the bug is produced. 
+The idea is to easily adjust the development process by forbidding the usage of things that causes problems (e.g.  certain compiler optimization level or some standard C++ function, as stated before)  and thus mitigating risk. Thus the whole cluster of issues could be marked of no risk.
+
+Then I plan to use this following script
+#!/usr/bin/env python
+from __future__ import print_function
+import numpy as np
+import sys
+import csv
+from time import time
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, accuracy_score
+
+import lemmatization
+
+def csv_to_string_data_and_labels(csv_filepath):
+    texts = []
+    labels = []
+    with open(csv_filepath, newline='', encoding='utf-8') as csvfile:
+        reader = csv.reader(csvfile)
+        for row in reader:
+            if not row:
+                continue
+            # Example: Use columns 1 and 3 as text; column 0 as label - adjust as needed
+            doc_text = row[1] + " " + row[3]
+            texts.append(doc_text.strip())
+            labels.append(row[6])  # Assuming label is in column 0
+    return texts, labels
+
+if __name__ == "__main__":
+    csv_filepath = 'Issues_Vector21-periodicreview-oct25o.csv'
+    if len(sys.argv) > 1:
+        csv_filepath = sys.argv[1]
+
+    print(f"Loading data from {csv_filepath}...")
+    texts, labels = csv_to_string_data_and_labels(csv_filepath)
+
+    print("Preprocessing and vectorizing text...")
+    lemmaToken = lemmatization.LemmaTokenizer()
+    tfidf_vectorizer = TfidfVectorizer(
+                            max_df=0.95,
+                            min_df=2,
+                            max_features=100,
+                            stop_words='english',
+                            tokenizer=lemmaToken)
+    X = tfidf_vectorizer.fit_transform(texts)
+    y = labels
+
+	#in sklearn splits your dataset into four parts, each with a specific role:
+    #X: The input feature matrix (all samples with their features).
+    #y: The target labels corresponding to each sample in X.
+    #
+#The outputs are:
+
+    #X_train: The subset of X used to train the model (here 80% of data).
+    #X_test: The subset of X reserved for testing or evaluating the model (here 20% of data).
+    #
+    #y_train: The labels corresponding to X_train.
+    #y_test: The labels corresponding to X_test.
+	#
+#Parameters:
+    #test_size=0.2: 20% of the dataset will be randomly selected as the test set, and 80% as the training set.
+    #random_state=42: A fixed seed for the random number generator to ensure reproducible splits every time you run the code.
+	#In summary, this function randomly shuffles and splits 
+	#the input data and labels into training and testing sets according to the specified test size, 
+	#maintaining the input-label correspondence for supervised learning. The training sets are used 
+	#to fit the model, while the test sets evaluate its performance in an unbiased manne
+	
+    print("Splitting data into train and test sets...")
+    X_train, X_test, y_train, y_test = train_test_split(
+                                            X, y, test_size=0.2, random_state=42)
+
+    print("Training Logistic Regression model...")
+    clf = LogisticRegression(max_iter=200)
+    t0 = time()
+    clf.fit(X_train, y_train)
+    train_time = time() - t0
+    print(f"Training done in {train_time:.3f}s.")
+
+    print("Predicting on test set...")
+    y_pred = clf.predict(X_test)
+
+    print("Evaluation results:")
+    print("Accuracy:", accuracy_score(y_test, y_pred))
+    print(classification_report(y_test, y_pred))
+
+    # Optionally, save the model or vectorizer for later use
+    # via pickle or joblib if needed
+    
+    # Convert y_test to a numpy array if not already
+y_test_array = np.array(y_test)
+
+# Find indices where predictions differ from true labels
+misclassified_indices = np.where(y_test_array != y_pred)[0]
+
+print("Misclassified entries:")
+for idx in misclassified_indices:
+    print(f"Index: {idx}")
+    print(f"True label: {y_test_array[idx]}")
+    print(f"Predicted label: {y_pred[idx]}")
+    # To show the original text corresponding to this index in test set
+    # you need to map back from X_test to original texts:
+    # Assuming you kept texts in the same order and did not shuffle outside train_test_split:
+    print(f"Text: {texts[idx]}")  
+    print("-----")
+
+It is different in the sense that it learns using 
+Supervised Classification Models: Since I would now have predefined categories like "UI bugs" and "build errors" with associated keywords, I can create labeled training data (e.g., manually label a subset of bug entries) and train a supervised classifier such as Logistic Regression .This approach directly learns the link from text features to risk classes and leverages your known keywords during feature engineering (e.g., TF-IDF restricted to your keywords or phrase features). It would be a second method to verify and further estimate issues which are badly clustured. E.g. few clusters in the previous method might not be feasible - well formed. This would lead to issue misclassification and I expect that the second approach would at least slightly correct.
+What do you think on that?

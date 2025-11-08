@@ -86,7 +86,8 @@ if __name__ == "__main__":
                                        min_df=2,
                                        max_features=n_features, 
                                        stop_words='english', 
-                                       tokenizer = lemmaToken)
+                                       tokenizer = lemmaToken,
+                                       ngram_range=(2, 3))
 
 
     tfidf = tfidf_vectorizer.fit_transform(stringData["text"])
