@@ -1,129 +1,98 @@
 #!/usr/bin/env python
-#Datathon critical outliers - clusterize VMWare KB articles
-
-#Credit to 
-# Author: Olivier Grisel <olivier.grisel@ensta.org>
-#         Lars Buitinck
-#         Chyi-Kwei Yau <chyikwei.yau@gmail.com>
-#for some source code from
-#http://scikit-learn.org/0.18/auto_examples/applications/topics_extraction_with_nmf_lda.html
-
+#use guidedlda for supervised clustering
 from __future__ import print_function
-import os
-import sys
-from time import time
-#import parse
-import load_parsed_htmls
-import preprocess_docs
-import lemmatization
-
-from sklearn.feature_extraction import text
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
-from sklearn.decomposition import NMF, LatentDirichletAllocation
-from sklearn.datasets import fetch_20newsgroups
-import numpy as np
-
-import pyLDAvis
-import pyLDAvis.lda_model
-#import cPickle as pickle
 import csv
+import sys
+import numpy as np
+from sklearn.feature_extraction.text import CountVectorizer
+import guidedlda
 
-import nltk
-nltk.data.path.append('/home/admin/nltk_data')
-
-from gensim.test.utils import common_corpus, common_dictionary
-from gensim.models.coherencemodel import CoherenceModel
-from gensim.corpora.dictionary import Dictionary
-
-dir_path = 'HTML_parsed01/'
 n_samples = 100 #None for all
-n_features = 100
-n_components = 6
-n_top_words = 10
 
-def print_top_words(model, feature_names, n_top_words):
-    outstr = []
-    for topic_idx, topic in enumerate(model.components_):
-        ascendingIndeces = topic.argsort()[:-n_top_words - 1:-1]
-        message = "Topic #%d: " % topic_idx
-        sublist = []
-        for idx in ascendingIndeces:
-            message += (feature_names[idx] + '\n')
-            sublist += [feature_names[idx]]
-        outstr += [sublist]
-        print(message)
-    print()
-    return outstr
-
-def csv_to_string_data(csv_filepath):
-    string_data = {"text": []}
-
+def csv_to_string_data_and_labels(csv_filepath):
+    texts = []
+    labels = []
     with open(csv_filepath, newline='', encoding='utf-8') as csvfile:
         reader = csv.reader(csvfile)
         for row_num, row in enumerate(reader, start=1):
-            # Skip empty rows or header if any (adapt if needed)
             if not row:
                 continue
             if row_num > n_samples:
                 break
-            # Example: Combine multiple columns as one document string
-            # You can adjust which columns to combine for "document"
-            # Here using columns 1 (title) and 3 (description) as text
+            # Use columns 1 and 3 as text; adjust if needed
             doc_text = row[1] + " " + row[3]
-            string_data["text"].append(doc_text.strip())
-    
-    return string_data
+            texts.append(doc_text.strip())
+            labels.append(row[6])  # Assuming label is in column 6
+    return texts, labels
 
+# Function to check if document contains any seed word tokens
+def contains_seed_words(doc_idx, seed_word_ids):
+    doc_tokens = X_counts[doc_idx].indices
+    return any(token in doc_tokens for token in seed_word_ids)
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print('No command-line arguments, assume',dir_path,'for dir path of parsed htmls into jsons.')
-    else:
-        dir_path = sys.argv[1]
+    csv_filepath = 'Issues_Vector21-periodicreview-oct25o.csv'
+    if len(sys.argv) > 1:
+        csv_filepath = sys.argv[1]
+
+    print(f"Loading data from {csv_filepath}...")
+    texts, labels = csv_to_string_data_and_labels(csv_filepath)
+
+    print("Vectorizing text with CountVectorizer for guidedLDA...")
+    count_vectorizer = CountVectorizer(stop_words='english', min_df=2)
+    X_counts = count_vectorizer.fit_transform(texts)
+    vocab = count_vectorizer.get_feature_names_out()
+
+    # Define your seed words for supervised topics (clusters)
+    seed_topics = {
+        0: ['build', 'error', 'compiler'],
+        1: ['source', 'file', 'perspective', 'sfp'],
+        2: ['link', 'error'],
+        3: ['parse', 'error'],
+        4: ['environment', 'error']
+    }
+
+    # Map seed words to vocabulary indices for guidedLDA
+    # seed_topics_indices should be dictionary {word_id: topic_id}
+    seed_topics_indices = {}
+    for topic_id, seed_words in seed_topics.items():
+        for word in seed_words:
+            if word in vocab:
+                seed_topics_indices[vocab.tolist().index(word)] = topic_id
     
-    #parsed_htmls = load_parsed_htmls.load_parsed_htmls(dir_path, n_samples)
-    #stringData = preprocess_docs.preprocess_docs(parsed_htmls)
-    #pickle.dump( stringData, open('stringData.pickle','wb') )
-    #stringData = pickle.load( open('stringData.pickle','rb') )
-    stringData = csv_to_string_data('Issues_Vector21-periodicreview-oct25o.csv')
-    lemmaToken = lemmatization.LemmaTokenizer()
     
-    vectorcastStopWords = {'previously', 'previous', 'vectorcast', 'fix', 'version', '2021', '2022', '2023', '2024', '2025'}
-    vectorcastUseWords = {'no'}
-    my_stop_words = list(text.ENGLISH_STOP_WORDS.union(vectorcastStopWords).difference(vectorcastUseWords))
-    tfidf_vectorizer = TfidfVectorizer(max_df=0.9, 
-                                       min_df=2,
-                                       max_features=n_features, 
-                                       stop_words=my_stop_words, 
-                                       tokenizer = lemmaToken,
-                                       ngram_range=(1, 3))
-
-
-    tfidf = tfidf_vectorizer.fit_transform(stringData["text"])
-
-
-
-    print("Fitting LDA models with tf features, "
-          "n_samples=%d and n_features=%d..."
-          % (n_samples, n_features))
-
-    lda = LatentDirichletAllocation(n_components=n_components, max_iter=5,
-                                    learning_method='online',
-                                    learning_offset=50.,
-                                    random_state=0)
-    t0 = time()
-    lda.fit(tfidf)
-    print("done in %0.3fs." % (time() - t0))
-
-    print("\nTopics in LDA model:")
-    tf_feature_names = tfidf_vectorizer.get_feature_names_out()
-    topwords = print_top_words(lda, tf_feature_names, n_top_words)
-    print("done in %0.3fs." % (time() - t0))
+    n_topics = len(seed_topics)
+    print("Fitting guidedLDA model with seed topics...")
+    model = guidedlda.GuidedLDA(n_topics=n_topics, n_iter=100, random_state=7, refresh=20)
+    model.fit(X_counts, seed_topics=seed_topics_indices, seed_confidence=0.15)
     
-   
-    print("coherence =", get_gensim_coherence(lda, tf_feature_names, stringData, my_stop_words))
+    print("Transforming documents into topic distributions...")
+    doc_topic_dist = model.transform(X_counts)
+
+    # doc_topic_dist: matrix of shape (n_docs, n_topics) from guidedlda.transform()
+    assigned_clusters = doc_topic_dist.argmax(axis=1)
+    max_probabilities = doc_topic_dist.max(axis=1)
     
-    vis_data = pyLDAvis.lda_model.prepare(lda, tfidf, tfidf_vectorizer)
-        
-    pyLDAvis.save_html(vis_data, 'lda_vis.html')
-    #pyLDAvis.show(vis_data)
+    # Define cluster -1 as trash cluster
+    trash_cluster_id = -1
+    # Define threshold for confident cluster assignment; e.g., 0.3 (tune as needed)
+    threshold = 0.9
+    
+    # Prepare flat list of all seed word IDs from your seed_topics dictionary
+    seed_word_ids = [word_id for word_id in seed_topics_indices.keys()]
+    
+    final_clusters = []
+    for idx in range(doc_topic_dist.shape[0]):
+        if max_probabilities[idx] < threshold or not contains_seed_words(idx, seed_word_ids):
+            final_clusters.append(trash_cluster_id)  # Assign to trash cluster
+        else:
+            final_clusters.append(assigned_clusters[idx])
+    
+    print("Cluster assignments with trash cluster (-1):")
+    for idx, cluster in enumerate(final_clusters):
+        #if idx == -1:
+        print(f"Document {idx}: Cluster {cluster} - Text Sample: {texts[idx][:100]}")
+
+    # Optionally evaluate clustering against known labels if meaningful
+    # For demonstration, just print some cluster examples
+

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# AI - teach the model to clasify bugs by using Training Logistic Regression model
 from __future__ import print_function
 import numpy as np
 import sys

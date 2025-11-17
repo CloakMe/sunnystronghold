@@ -1,13 +1,6 @@
 ﻿#!/usr/bin/env python
-#Datathon critical outliers - clusterize VMWare KB articles
-
-#Credit to 
-# Author: Olivier Grisel <olivier.grisel@ensta.org>
-#         Lars Buitinck
-#         Chyi-Kwei Yau <chyikwei.yau@gmail.com>
-#for some source code from
-#http://scikit-learn.org/0.18/auto_examples/applications/topics_extraction_with_nmf_lda.html
-
+#use coherence to calculate how good are clusters - no training - only try to find best number of topics
+#use proper stop words dictionary - add words to stop words, exclude words from stop words.
 from __future__ import print_function
 import os
 import sys
