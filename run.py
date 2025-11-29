@@ -29,9 +29,9 @@ from gensim.models.coherencemodel import CoherenceModel
 from gensim.corpora.dictionary import Dictionary
 
 dir_path = 'HTML_parsed01/'
-n_samples = 100 #None for all
-n_features = 100
-n_components = 6
+n_samples = 600 #None for all
+n_features = 99
+n_components = 5
 n_top_words = 10
 
 def print_top_words(model, feature_names, n_top_words):
@@ -112,15 +112,14 @@ if __name__ == "__main__":
     stringData = csv_to_string_data('Issues_Vector21-periodicreview-oct25o.csv')
     lemmaToken = lemmatization.LemmaTokenizer()
     
-    vectorcastStopWords = {'previously', 'previous', 'vectorcast', 'fix', 'version', '2021', '2022', '2023', '2024', '2025'}
+    vectorcastStopWords = {'previously', 'previous', 'vectorcast', 'fix', 'version', '2021', '2022', '2023', '2024', '2025', 'sp1', 'sp2', 'sp3', 'sp4', 'sp5', 'sp6', 'sp7'}
     vectorcastUseWords = {'no'}
     my_stop_words = list(text.ENGLISH_STOP_WORDS.union(vectorcastStopWords).difference(vectorcastUseWords))
-    tfidf_vectorizer = TfidfVectorizer(max_df=0.9, 
+    tfidf_vectorizer = TfidfVectorizer(max_df=0.7, 
                                        min_df=2,
-                                       max_features=n_features, 
                                        stop_words=my_stop_words, 
                                        tokenizer = lemmaToken,
-                                       ngram_range=(1, 3))
+                                       ngram_range=(2, 4))
 
 
     tfidf = tfidf_vectorizer.fit_transform(stringData["text"])

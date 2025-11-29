@@ -5,9 +5,37 @@ import csv
 import sys
 import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction import text
 import guidedlda
+import pyLDAvis
+import pyLDAvis.lda_model
+import lemmatization
 
 n_samples = 100 #None for all
+
+def prepare_guidedlda_pyldavis(model, X_counts, vocab):
+    # topic-term distributions, shape (n_topics, n_vocab)
+    topic_term_dists = model.topic_word_
+
+    # document-topic distributions, shape (n_docs, n_topics)
+    doc_topic_dists = model.transform(X_counts)
+
+    # calculate document lengths (number of words per doc)
+    doc_lengths = np.array(X_counts.sum(axis=1)).flatten()
+
+    # calculate term frequency over the corpus (sum across docs)
+    term_frequency = np.array(X_counts.sum(axis=0)).flatten()
+
+    # create a dictionary with pyLDAvis expected format
+    prepared_data = pyLDAvis.prepare(
+        topic_term_dists=topic_term_dists,
+        doc_topic_dists=doc_topic_dists,
+        doc_lengths=doc_lengths,
+        vocab=vocab,
+        term_frequency=term_frequency
+    )
+    return prepared_data
+
 
 def csv_to_string_data_and_labels(csv_filepath):
     texts = []
@@ -39,17 +67,25 @@ if __name__ == "__main__":
     texts, labels = csv_to_string_data_and_labels(csv_filepath)
 
     print("Vectorizing text with CountVectorizer for guidedLDA...")
-    count_vectorizer = CountVectorizer(stop_words='english', min_df=2)
+    vectorcastStopWords = {'previously', 'previous', 'vectorcast', 'fix', 'version', '2021', '2022', '2023', '2024', '2025'}
+    vectorcastUseWords = {'no'}
+    my_stop_words = list(text.ENGLISH_STOP_WORDS.union(vectorcastStopWords).difference(vectorcastUseWords))
+    lemmaToken = lemmatization.LemmaTokenizer()
+    count_vectorizer = CountVectorizer(stop_words=my_stop_words, 
+                                       min_df=1,
+                                       max_df=0.7,
+                                       tokenizer = lemmaToken,
+                                       ngram_range=(1, 3))
     X_counts = count_vectorizer.fit_transform(texts)
     vocab = count_vectorizer.get_feature_names_out()
 
     # Define your seed words for supervised topics (clusters)
     seed_topics = {
-        0: ['build', 'error', 'compiler'],
-        1: ['source', 'file', 'perspective', 'sfp'],
-        2: ['link', 'error'],
-        3: ['parse', 'error'],
-        4: ['environment', 'error']
+        0: ['build', 'compiler', 'compilation', 'compile'],
+        1: ['source', 'file', 'perspective', 'sfp', 'report'],
+        2: ['link', 'linker', 'linking'],
+        3: ['parse'],
+        4: ['environment']
     }
 
     # Map seed words to vocabulary indices for guidedLDA
@@ -88,11 +124,16 @@ if __name__ == "__main__":
         else:
             final_clusters.append(assigned_clusters[idx])
     
-    print("Cluster assignments with trash cluster (-1):")
-    for idx, cluster in enumerate(final_clusters):
-        #if idx == -1:
-        print(f"Document {idx}: Cluster {cluster} - Text Sample: {texts[idx][:100]}")
-
+    for special_id in range(-1,5):
+        for idx, cluster in enumerate(final_clusters):
+            if cluster == special_id:
+                print(f"Document {idx}: Cluster {cluster} - Text Sample: {texts[idx][:100]}")
+    
     # Optionally evaluate clustering against known labels if meaningful
     # For demonstration, just print some cluster examples
+    
+    # Use the function to prepare the visualization data
+    vis_data = prepare_guidedlda_pyldavis(model, X_counts, vocab)
+        
+    pyLDAvis.save_html(vis_data, 'guidedlda_vis.html')
 

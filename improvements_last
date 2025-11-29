@@ -115,7 +115,7 @@ if __name__ == "__main__":
     pyLDAvis.save_html(vis_data, 'lda_vis.html')
     #pyLDAvis.show(vis_data)
 
-This is a script which loads the csv. The csv file contains issues/bugs that are related to a (usually C/C++) development toolchain. One needs to estimate the risk each issue might create/impose, when using that toolchain. The idea is to use the script to first cluster the issues into distinct categories. Each category represents a certain topic - usually it target the usage of something e.g. certain compiler optimization level or some standard C++ function, in which case the bug is produced. 
+This is a script which first loads csv file (preprocessor step). The csv file contains issues/bugs that are related to a (usually C/C++) development toolchain. One needs to estimate the risk each issue might create/impose, when using that toolchain. The idea is to use the script to first cluster the issues into distinct categories. Each category represents a certain topic - usually it target the usage of something e.g. certain compiler optimization level or some standard C++ function, in which case the bug is produced. 
 The idea is to easily adjust the development process by forbidding the usage of things that causes problems (e.g.  certain compiler optimization level or some standard C++ function, as stated before)  and thus mitigating risk. Thus the whole cluster of issues could be marked of no risk.
 
 Then I plan to use this following script
