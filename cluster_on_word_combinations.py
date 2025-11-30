@@ -37,7 +37,7 @@ def csv_to_string_data_and_labels(csv_filepath):
             labels.append(row[6])  # Assuming label is in column 6
     return texts, labels
 
-n_samples = 100 #None for all
+n_samples = 620 #None for all
 
 if __name__ == "__main__":
     csv_filepath = 'Issues_Vector21-periodicreview-oct25o.csv'
@@ -61,9 +61,12 @@ if __name__ == "__main__":
             res = find_word_combination(vc_topic, bug_description)
             if(res == True):
                 simple_clusters[t_i]=idx
+                break
             else:
                 simple_clusters[t_i]=-1
             idx = idx+1
+        if(t_i == 36):
+            breakHere = 1
         t_i = t_i + 1
         
     size = len(vectorcast_topics)
