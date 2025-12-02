@@ -14,7 +14,7 @@ def find_word_combination(combination, bug_description):
     for item in combination:
         sub_item_found = False;
         for sub_item in item:
-            sub_item_found = bug_description.find(sub_item) != -1
+            sub_item_found = bug_description.lower().find(sub_item) != -1
             if sub_item_found == True:
                 break
         if sub_item_found == False:
@@ -39,20 +39,25 @@ def csv_to_string_data_and_labels(csv_filepath):
 
 n_samples = 620 #None for all
 
-if __name__ == "__main__":
-    csv_filepath = 'Issues_Vector21-periodicreview-oct25o.csv'
+vectorcast_topics = [
+    [ ['build', 'compil'], ['error', 'failure'] ],
+    [ ['using source file perspective', 'source file perspective', 'sfp'], ['set', 'using'] ],
+    [ ['link'], ['error', 'failure'] ],
+    [ ['parse', 'environment'], ['error', 'failure'] ],
+    [ ['license'], ['error'] ]
+]
+
+csv_filepath = 'Issues_Vector21-periodicreview-oct25o.csv'
+
+def process_topics(vectorcast_topics, csv_filepath, n_samples):
+    
     if len(sys.argv) > 1:
         csv_filepath = sys.argv[1]
 
     print(f"Loading data from {csv_filepath}...")
     texts, labels = csv_to_string_data_and_labels(csv_filepath)
     
-    vectorcast_topics = [
-        [ ['build', 'compil'], ['error', 'failure'] ],
-        [ ['source file perspective', 'sfp'], ['report'] ],
-        [ ['link'], ['error', 'failure'] ],
-        [ ['parse', 'environment'], ['error', 'failure'] ]
-    ]
+
     simple_clusters = {}
     t_i = 0
     for bug_description in texts:
@@ -65,7 +70,7 @@ if __name__ == "__main__":
             else:
                 simple_clusters[t_i]=-1
             idx = idx+1
-        if(t_i == 36):
+        if(t_i == 15):
             breakHere = 1
         t_i = t_i + 1
         
@@ -79,6 +84,7 @@ if __name__ == "__main__":
                 count += 1
         if count == 0:
             print(f"No documents in cluster {special_id}")
-        
+    
+    return simple_clusters, texts
                 
     

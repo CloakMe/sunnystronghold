@@ -29,7 +29,7 @@ from gensim.models.coherencemodel import CoherenceModel
 from gensim.corpora.dictionary import Dictionary
 
 dir_path = 'HTML_parsed01/'
-n_samples = 600 #None for all
+n_samples = None #None for all
 n_features = 99
 n_components = 5
 n_top_words = 10
@@ -48,26 +48,35 @@ def print_top_words(model, feature_names, n_top_words):
     print()
     return outstr
 
-def csv_to_string_data(csv_filepath):
-    string_data = {"text": []}
-
+def csv_to_string_data(csv_filepath, row_threshold):
+    texts = []
+    labels = []
+    
     with open(csv_filepath, newline='', encoding='utf-8') as csvfile:
         reader = csv.reader(csvfile)
+        row_count = sum(1 for row in reader)
+        if row_threshold  is None:
+            max_articles = row_count
+        else:
+            max_articles = row_threshold
+        csvfile.seek(0)             # Reset file pointer to the beginning
+        reader = csv.reader(csvfile)  # Create a new reader from the reset file object
         for row_num, row in enumerate(reader, start=1):
             # Skip empty rows or header if any (adapt if needed)
             if not row:
                 continue
-            if row_num > n_samples:
+            if row_num >= max_articles:
                 break
             # Example: Combine multiple columns as one document string
             # You can adjust which columns to combine for "document"
             # Here using columns 1 (title) and 3 (description) as text
-            doc_text = row[1] + " " + row[3]
-            string_data["text"].append(doc_text.strip())
-    
-    return string_data
+            doc_text = row[3] + " " + row[1]
+            texts.append(doc_text.strip())
+            labels.append(row[6])  # Assuming label is in column 6
+            
+    return texts, labels
 
-def get_gensim_coherence(sklearn_lda, tf_feature_names, stringData, my_stop_words):
+def get_gensim_coherence(sklearn_lda, tf_feature_names, texts, my_stop_words):
     # tokenized_texts: list of documents, each document is a list of tokens (words)
     topics = []
     for topic_idx, topic_weights in enumerate(sklearn_lda.components_):
@@ -80,7 +89,7 @@ def get_gensim_coherence(sklearn_lda, tf_feature_names, stringData, my_stop_word
         [token for phrase in topic for token in phrase.split()]
         for topic in topics
     ]
-    tokenized_texts = [lemmaToken(doc) for doc in stringData["text"]]
+    tokenized_texts = [lemmaToken(doc) for doc in texts]
     dictionary = Dictionary(tokenized_texts)
     bug_common_corpus = [
         dictionary.doc2bow([token for token in doc_tokens if token not in my_stop_words])
@@ -109,7 +118,7 @@ if __name__ == "__main__":
     #stringData = preprocess_docs.preprocess_docs(parsed_htmls)
     #pickle.dump( stringData, open('stringData.pickle','wb') )
     #stringData = pickle.load( open('stringData.pickle','rb') )
-    stringData = csv_to_string_data('Issues_Vector21-periodicreview-oct25o.csv')
+    texts, labels = csv_to_string_data('Issues_Vector21-periodicreview-oct25o.csv', n_samples)
     lemmaToken = lemmatization.LemmaTokenizer()
     
     vectorcastStopWords = {'previously', 'previous', 'vectorcast', 'fix', 'version', '2021', '2022', '2023', '2024', '2025', 'sp1', 'sp2', 'sp3', 'sp4', 'sp5', 'sp6', 'sp7'}
@@ -122,13 +131,13 @@ if __name__ == "__main__":
                                        ngram_range=(2, 4))
 
 
-    tfidf = tfidf_vectorizer.fit_transform(stringData["text"])
+    tfidf = tfidf_vectorizer.fit_transform(texts)
 
 
 
     print("Fitting LDA models with tf features, "
           "n_samples=%d and n_features=%d..."
-          % (n_samples, n_features))
+          % (len(texts), n_features))
 
     lda = LatentDirichletAllocation(n_components=n_components, max_iter=5,
                                     learning_method='online',
@@ -144,7 +153,7 @@ if __name__ == "__main__":
     print("done in %0.3fs." % (time() - t0))
     
    
-    print("coherence =", get_gensim_coherence(lda, tf_feature_names, stringData, my_stop_words))
+    print("coherence =", get_gensim_coherence(lda, tf_feature_names, texts, my_stop_words))
     
     vis_data = pyLDAvis.lda_model.prepare(lda, tfidf, tfidf_vectorizer)
         
