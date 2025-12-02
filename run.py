@@ -28,6 +28,8 @@ from gensim.test.utils import common_corpus, common_dictionary
 from gensim.models.coherencemodel import CoherenceModel
 from gensim.corpora.dictionary import Dictionary
 
+import cluster_on_word_combinations as prep_docs
+
 dir_path = 'HTML_parsed01/'
 n_samples = None #None for all
 n_features = 99
@@ -108,6 +110,17 @@ def get_gensim_coherence(sklearn_lda, tf_feature_names, texts, my_stop_words):
     coherence = cm.get_coherence()  # get coherence value
     return coherence
 
+def get_rule_cluster_top_words(vectorcast_topics, tf_feature_names, texts, lemmaToken, my_stop_words):
+    rule_topics = []
+    for topic_idx, vc_topic in enumerate(vectorcast_topics):
+        # Flatten word combinations into top words for this cluster
+        flat_words = [word for combo in vc_topic for word in combo]
+        # Optionally score/filter by TF-IDF relevance from your vectorizer
+        relevant_words = [w for w in flat_words if w in tf_feature_names]
+        rule_topics.append(relevant_words[:n_top_words])  # Limit to n_top_words
+        print(f"Rule Cluster #{topic_idx}: {relevant_words[:n_top_words]}")
+    return rule_topics
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print('No command-line arguments, assume',dir_path,'for dir path of parsed htmls into jsons.')
@@ -118,7 +131,15 @@ if __name__ == "__main__":
     #stringData = preprocess_docs.preprocess_docs(parsed_htmls)
     #pickle.dump( stringData, open('stringData.pickle','wb') )
     #stringData = pickle.load( open('stringData.pickle','rb') )
-    texts, labels = csv_to_string_data('Issues_Vector21-periodicreview-oct25o.csv', n_samples)
+    all_texts, labels = csv_to_string_data('Issues_Vector21-periodicreview-oct25o.csv', n_samples)
+    vectorcast_topics = [
+        [ ['build', 'compil'], ['error', 'failure'] ],
+        [ ['using source file perspective', 'source file perspective', 'sfp'], ['set', 'using'] ],
+        [ ['link'], ['error', 'failure'] ],
+        [ ['parse', 'environment'], ['error', 'failure'] ],
+        [ ['license'], ['error'] ]
+    ]
+    simple_clusters = prep_docs.process_topics(vectorcast_topics, all_texts, n_samples)
     lemmaToken = lemmatization.LemmaTokenizer()
     
     vectorcastStopWords = {'previously', 'previous', 'vectorcast', 'fix', 'version', '2021', '2022', '2023', '2024', '2025', 'sp1', 'sp2', 'sp3', 'sp4', 'sp5', 'sp6', 'sp7'}
@@ -129,10 +150,9 @@ if __name__ == "__main__":
                                        stop_words=my_stop_words, 
                                        tokenizer = lemmaToken,
                                        ngram_range=(2, 4))
-
-
+    non_clustered_ids = [id for id,cluster in simple_clusters.items() if cluster == -1]
+    texts = [all_texts[id] for id in non_clustered_ids]
     tfidf = tfidf_vectorizer.fit_transform(texts)
-
 
 
     print("Fitting LDA models with tf features, "

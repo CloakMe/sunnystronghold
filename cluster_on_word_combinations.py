@@ -21,42 +21,14 @@ def find_word_combination(combination, bug_description):
             return False
     return True
 
-def csv_to_string_data_and_labels(csv_filepath):
-    texts = []
-    labels = []
-    with open(csv_filepath, newline='', encoding='utf-8') as csvfile:
-        reader = csv.reader(csvfile)
-        for row_num, row in enumerate(reader, start=1):
-            if not row:
-                continue
-            if row_num > n_samples:
-                break
-            # Use columns 1 and 3 as text; adjust if needed
-            doc_text = row[1] + " " + row[3]
-            texts.append(doc_text.strip())
-            labels.append(row[6])  # Assuming label is in column 6
-    return texts, labels
+#n_samples = 620 #None for all
 
-n_samples = 620 #None for all
+#csv_filepath = 'Issues_Vector21-periodicreview-oct25o.csv'
 
-vectorcast_topics = [
-    [ ['build', 'compil'], ['error', 'failure'] ],
-    [ ['using source file perspective', 'source file perspective', 'sfp'], ['set', 'using'] ],
-    [ ['link'], ['error', 'failure'] ],
-    [ ['parse', 'environment'], ['error', 'failure'] ],
-    [ ['license'], ['error'] ]
-]
-
-csv_filepath = 'Issues_Vector21-periodicreview-oct25o.csv'
-
-def process_topics(vectorcast_topics, csv_filepath, n_samples):
+def process_topics(vectorcast_topics, texts, n_samples):
     
     if len(sys.argv) > 1:
         csv_filepath = sys.argv[1]
-
-    print(f"Loading data from {csv_filepath}...")
-    texts, labels = csv_to_string_data_and_labels(csv_filepath)
-    
 
     simple_clusters = {}
     t_i = 0
@@ -85,6 +57,6 @@ def process_topics(vectorcast_topics, csv_filepath, n_samples):
         if count == 0:
             print(f"No documents in cluster {special_id}")
     
-    return simple_clusters, texts
+    return simple_clusters
                 
     
